@@ -1,9 +1,11 @@
-package com.example.woocommerceintegration.entity;
+package com.example.woocommerceintegration.dtos;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -71,6 +73,9 @@ public class Product {
     private String taxClass;
 
     private String weight;
+
+    @JsonProperty("images")
+    private List<ProductImage> images;
 
     @JsonProperty("shipping_required")
     private Boolean shippingRequired;
