@@ -44,13 +44,12 @@ public class CatalogService {
                     for (JsonNode productNode : dataNode) {
                         JsonNode nameNode = productNode.get("name");
                         if (nameNode != null && !nameNode.isNull()) {
-                            String productName = nameNode.asText().trim().toLowerCase();
+                            String productName = normalizeProductName(nameNode.asText());
                             existingProductNames.add(productName);
                         }
                     }
                 }
 
-                // Vérifier s'il y a une page suivante
                 JsonNode pagingNode = root.get("paging");
                 if (pagingNode != null && pagingNode.get("next") != null) {
                     nextPageUrl = pagingNode.get("next").asText();
@@ -59,10 +58,10 @@ public class CatalogService {
                 }
             }
 
-            System.out.println(" Récupéré " + existingProductNames.size() + " noms de produits existants");
+            System.out.println("✅ Récupéré " + existingProductNames.size() + " noms de produits existants");
 
         } catch (Exception e) {
-            System.err.println(" Erreur lors de la récupération des produits existants: " + e.getMessage());
+            System.err.println("❌ Erreur lors de la récupération des produits existants: " + e.getMessage());
             e.printStackTrace();
         }
 
