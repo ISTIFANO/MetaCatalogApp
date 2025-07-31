@@ -59,6 +59,8 @@ public class Product {
     private String catalogVisibility;
 
     private Boolean purchasable;
+    @JsonProperty("categories")
+    private List<Category> categories;
 
     @JsonProperty("total_sales")
     private Integer totalSales;
