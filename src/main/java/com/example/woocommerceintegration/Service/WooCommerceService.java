@@ -139,7 +139,7 @@ public class WooCommerceService {
                 result.put("total", products.size());
                 result.put("store_url", storeUrl);
                 result.put("applied_filters", filters);
-
+System.out.println(result.get("statistics"));
                 return result;
             } else {
                 throw new RuntimeException("Failed to fetch products. Status: " + response.getStatusCode());
