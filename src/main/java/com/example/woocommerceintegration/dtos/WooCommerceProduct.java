@@ -11,7 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Product {
+public class WooCommerceProduct {
     private Long id;
     private String name;
     private String slug;

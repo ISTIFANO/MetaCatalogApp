@@ -1,6 +1,6 @@
 package com.example.woocommerceintegration.Service;
 
-import com.example.woocommerceintegration.dtos.Product;
+import com.example.woocommerceintegration.dtos.WooCommerceProduct;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -128,15 +128,15 @@ public class WooCommerceService {
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
             if (response.getStatusCode() == HttpStatus.OK) {
-                List<Product> products = objectMapper.readValue(response.getBody(), new TypeReference<List<Product>>() {});
+                List<WooCommerceProduct> wooCommerceProducts = objectMapper.readValue(response.getBody(), new TypeReference<List<WooCommerceProduct>>() {});
 
                 // Calculer les statistiques
-                Map<String, Object> stats = calculateProductStats(products);
+                Map<String, Object> stats = calculateProductStats(wooCommerceProducts);
 
                 Map<String, Object> result = new HashMap<>();
-                result.put("products", products);
+                result.put("products", wooCommerceProducts);
                 result.put("statistics", stats);
-                result.put("total", products.size());
+                result.put("total", wooCommerceProducts.size());
                 result.put("store_url", storeUrl);
                 result.put("applied_filters", filters);
 System.out.println(result.get("statistics"));
@@ -154,15 +154,15 @@ System.out.println(result.get("statistics"));
     /**
      * Calcule les statistiques des produits
      */
-    private Map<String, Object> calculateProductStats(List<Product> products) {
+    private Map<String, Object> calculateProductStats(List<WooCommerceProduct> wooCommerceProducts) {
         Map<String, Object> stats = new HashMap<>();
 
-        if (products.isEmpty()) {
+        if (wooCommerceProducts.isEmpty()) {
             return stats;
         }
 
         // Statistiques générales
-        int totalProducts = products.size();
+        int totalProducts = wooCommerceProducts.size();
         int publishedProducts = 0;
         int draftProducts = 0;
         int inStockProducts = 0;
@@ -177,42 +177,42 @@ System.out.println(result.get("statistics"));
         Map<String, Integer> categoryCount = new HashMap<>();
         Map<String, Integer> statusCount = new HashMap<>();
 
-        for (Product product : products) {
+        for (WooCommerceProduct wooCommerceProduct : wooCommerceProducts) {
             // Statut
-            if ("publish".equals(product.getStatus())) {
+            if ("publish".equals(wooCommerceProduct.getStatus())) {
                 publishedProducts++;
-            } else if ("draft".equals(product.getStatus())) {
+            } else if ("draft".equals(wooCommerceProduct.getStatus())) {
                 draftProducts++;
             }
-            statusCount.put(product.getStatus(), statusCount.getOrDefault(product.getStatus(), 0) + 1);
+            statusCount.put(wooCommerceProduct.getStatus(), statusCount.getOrDefault(wooCommerceProduct.getStatus(), 0) + 1);
 
             // Stock
-            if ("instock".equals(product.getStockStatus())) {
+            if ("instock".equals(wooCommerceProduct.getStockStatus())) {
                 inStockProducts++;
-            } else if ("outofstock".equals(product.getStockStatus())) {
+            } else if ("outofstock".equals(wooCommerceProduct.getStockStatus())) {
                 outOfStockProducts++;
             }
 
             // Prix et vente
-            if (product.getOnSale() != null && product.getOnSale()) {
+            if (wooCommerceProduct.getOnSale() != null && wooCommerceProduct.getOnSale()) {
                 onSaleProducts++;
             }
 
-            if (product.getFeatured() != null && product.getFeatured()) {
+            if (wooCommerceProduct.getFeatured() != null && wooCommerceProduct.getFeatured()) {
                 featuredProducts++;
             }
 
             // Calculs numériques
-            if (product.getPrice() != null && !product.getPrice().isEmpty()) {
+            if (wooCommerceProduct.getPrice() != null && !wooCommerceProduct.getPrice().isEmpty()) {
                 try {
-                    totalValue += Double.parseDouble(product.getPrice());
+                    totalValue += Double.parseDouble(wooCommerceProduct.getPrice());
                 } catch (NumberFormatException e) {
                     // Ignorer les prix non numériques
                 }
             }
 
-            if (product.getStockQuantity() != null) {
-                totalStockQuantity += product.getStockQuantity();
+            if (wooCommerceProduct.getStockQuantity() != null) {
+                totalStockQuantity += wooCommerceProduct.getStockQuantity();
             }
         }
 

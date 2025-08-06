@@ -31,12 +31,13 @@ public class CatalogController {
         token = token.replace("Bearer ", "");
 
         try {
-            // ✨ Nouvelle approche : synchronisation automatique par nom de produit
+            // Nouvelle approche : synchronisation automatique par nom de produit
             catalogService.synchronizeProductsWithCatalog(catalogRequest.getRequests(), catalogId, token);
-
+System.out.println("Catalog sucessfully submitted");
             return ResponseEntity.ok(" Catalogue synchronisé avec succès. Tous les produits manquants ont été ajoutés automatiquement.");
 
         } catch (Exception e) {
+            System.out.println(e.getMessage());
             System.err.println(" Erreur lors de la synchronisation du catalogue: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
