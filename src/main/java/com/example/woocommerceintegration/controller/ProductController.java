@@ -1,11 +1,18 @@
 package com.example.woocommerceintegration.controller;
 
 import com.example.woocommerceintegration.Repository.ApiKeyRepository;
+import com.example.woocommerceintegration.Service.ProductService;
 import com.example.woocommerceintegration.Service.WooCommerceService;
+import com.example.woocommerceintegration.dtos.ProductDTO;
 import com.example.woocommerceintegration.entity.Apikeys;
+import com.example.woocommerceintegration.entity.ProductEntity;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.List;
@@ -18,9 +25,19 @@ public class ProductController {
 
     @Autowired
     private WooCommerceService wooCommerceService;
+    @Autowired
+    private ProductService productService;
+
+
+    private final RestTemplate restTemplate;
+
 
     @Autowired
     private ApiKeyRepository apiKeyRepository;
+
+    public ProductController(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     /**
      * Endpoint simplifié pour générer l'URL d'autorisation
@@ -67,12 +84,15 @@ public class ProductController {
             @RequestParam(required = false) String featured,         // true, false
             @RequestParam(required = false) String category,         // ID de catégorie
             @RequestParam(required = false) String search,           // Recherche par nom
-            @RequestParam(defaultValue = "10") int per_page,         // Nombre par page
-            @RequestParam(defaultValue = "1") int page) {            // Page
+            @RequestParam(required = false) Integer per_page,        // Nombre par page
+            @RequestParam(defaultValue = "1") int page               // Page
+    ) {
         try {
             System.out.println("=== GET PRODUCTS WITH FILTERS DEBUG ===");
 
             Apikeys apiKey;
+
+            // Determine which API key to use
             if (website != null && !website.trim().isEmpty()) {
                 List<Apikeys> apiKeys = apiKeyRepository.findByWebsite(website);
                 if (apiKeys.isEmpty()) {
@@ -88,10 +108,10 @@ public class ProductController {
 
             String storeUrl = apiKey.getWebsite();
             if (storeUrl == null || storeUrl.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("No store URL found for this API key");
+                return ResponseEntity.badRequest().body("No store URL found for this API key.");
             }
 
-            // Construire les filtres
+            // Build filters map
             Map<String, String> filters = new HashMap<>();
             if (status != null) filters.put("status", status);
             if (stock_status != null) filters.put("stock_status", stock_status);
@@ -99,9 +119,12 @@ public class ProductController {
             if (featured != null) filters.put("featured", featured);
             if (category != null) filters.put("category", category);
             if (search != null) filters.put("search", search);
-            filters.put("per_page", String.valueOf(per_page));
+
+            // If per_page is null or set to 0, assume fetch all (e.g. 100)
+            filters.put("per_page", String.valueOf((per_page == null || per_page <= 0) ? 100 : per_page));
             filters.put("page", String.valueOf(page));
 
+            // Fetch from WooCommerce
             Map<String, Object> result = wooCommerceService.fetchProductsWithStats(
                     storeUrl,
                     apiKey.getConsumerKey(),
@@ -182,5 +205,46 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching sites: " + e.getMessage());
         }
+    }
+
+//  @PostMapping("/products/save")
+//    public ResponseEntity<ProductEntity> saveOrUpdateProduct(@RequestBody ProductDTO productDTO) {
+//        ProductEntity savedProduct = productService.saveOrUpdateProduct(productDTO);
+//        return ResponseEntity.ok(savedProduct);
+//    }
+
+    @PostMapping("/products/save")
+    public ResponseEntity<List<ProductEntity>> saveAllAndForward(
+            @RequestHeader("x-api-requestId") String requestId,
+            @RequestHeader("x-api-canal") String canal,
+            @RequestBody List<ProductDTO> productDTOs) {
+
+
+        List<ProductEntity> savedList = productDTOs.stream()
+                .map(dto -> productService.saveOrUpdateProduct(dto))
+                .toList();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add("x-api-requestId", requestId);
+        headers.add("x-api-canal", canal);
+
+        HttpEntity<List<ProductDTO>> forwardRequest = new HttpEntity<>(productDTOs, headers);
+
+        String externalUrl = "http://localhost:3000/external-sync/products";
+        restTemplate.postForEntity(externalUrl, forwardRequest, String.class);
+
+        return ResponseEntity.ok(savedList);
+    }
+
+    @GetMapping("/sync-unarchived")
+    public ResponseEntity<List<ProductDTO>> syncUnarchivedProducts(
+            @RequestHeader("x-api-requestId") String requestId,
+            @RequestHeader("x-api-canal") String canal) {
+
+        List<ProductDTO> forwardedProducts = productService.fetchUnarchivedProducts(requestId, canal);
+
+        System.out.println(forwardedProducts);
+        return ResponseEntity.ok(forwardedProducts);
     }
 }
